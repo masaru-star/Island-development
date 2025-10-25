@@ -2134,6 +2134,27 @@ let hiyou = (durability * 10000000) + (mainGun * 12000000) + (torpedo * 10000000
     }
   }
 
+if (turn > 0 && turn % 50 === 0) {
+    const monumentLevel = getMonumentLevel(); // A. で追加した関数を呼び出す
+    if (monumentLevel > 0) {
+        const expIncrease = monumentLevel * 5;
+        let increasedCount = 0;
+
+        warships.forEach(ship => {
+            // 1. 母港が現在の島名と同じ
+            // 2. expが"NaN"でない（特殊艦の除外）
+            // 3. 沈没していない
+            if (ship.homePort === islandName && ship.exp !== "NaN" && ship.currentDurability > 0) {
+                ship.exp += expIncrease;
+                increasedCount++;
+            }
+        });
+
+        if (increasedCount > 0) {
+            logAction(`[石碑効果] ${islandName}籍の軍艦 ${increasedCount}隻に経験値 ${expIncrease} を付与しました！ (Lv${monumentLevel}効果)`);
+        }
+    }
+}
   // 自動住宅形成
   for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++) {
@@ -2332,12 +2353,10 @@ updateStatus();
       const ny = monster.y + dy;
       return nx >= 0 && ny >= 0 && nx < SIZE && ny < SIZE && map[ny][nx].terrain !== 'sea';
     });
-
     if (possible.length > 0) {
       const { dx, dy } = possible[Math.floor(Math.random() * possible.length)];
       const nx = monster.x + dx;
       const ny = monster.y + dy;
-
       const targetTile = map[ny][nx];
       // 怪獣はPP弾に準じる扱いとする（防衛施設を破壊して貫通）
       const protectingFacility = getProtectingDefenseFacility(nx, ny);
@@ -2394,9 +2413,21 @@ if (totalMaintenanceCost > 0) {
   updateStatus();
   renderMap();
   const populationChange = population - prevPopulation; // 人口の増減を計算
-  logAction(`資金収入: ${moneyChange - totalMaintenanceCost}G, 食料: ${foodChange >= 0 ? '+' : ''}${foodChange}, 人口変化: ${populationChange >= 0 ? '+' : ''}${populationChange}`);
+  logAction(`資金収支: ${moneyChange - totalMaintenanceCost}G, 食料: ${foodChange >= 0 ? '+' : ''}${foodChange}, 人口変化: ${populationChange >= 0 ? '+' : ''}${populationChange}`);
 }
 
+function getMonumentLevel() {
+    for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE; x++) {
+            const tile = map[y][x];
+            // 石碑が存在し、レベルが設定されているか確認
+            if (tile.facility === 'Monument' && tile.MonumentLevel > 0) {
+                return tile.MonumentLevel;
+            }
+        }
+    }
+    return 0;
+}
 // セーブ機能
 window.saveGame = function() {
     islandName = document.getElementById('islandNameInput').value; // UIから名前を取得
@@ -2486,6 +2517,5 @@ window.onload = function() {
     loadMyIslandState(); // まず自分の島をロード/初期化
     updateConfirmButton(); // 初回UI更新
 };
-
 
 </script></body></html>
