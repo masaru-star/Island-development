@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>箱庭ゲーム</title>
+  <title>まさる式箱庭ゲーム Ver.4.1.0</title>
   <style>
     body { font-family: sans-serif; }
     table { border-collapse: collapse; }
@@ -497,7 +497,7 @@ function logAction(msg) {
   const log = document.getElementById('log');
   const entry = document.createElement('div');
   entry.textContent = `[ターン${turn}] ${msg}`;
-  if (msg.includes('失敗') || msg.includes('台風') || msg.includes('隕石') || msg.includes('不足') || msg.includes('廃墟') || msg.includes('壊滅') || msg.includes('踏み荒らしました') || msg.includes('怪獣が出現') || msg.includes('自爆') || msg.includes('攻撃されました') || msg.includes('砲撃を受けました') || msg.includes('破壊されました') || msg.includes('撃沈されました')) {
+  if (msg.includes('失敗') || msg.includes('台風') || msg.includes('隕石') || msg.includes('不足') || msg.includes('廃墟') || msg.includes('壊滅') || msg.includes('踏み荒らしました') || msg.includes('怪獣が出現') || msg.includes('自爆') || msg.includes('攻撃されました') || msg.includes('砲撃') || msg.includes('破壊されました') || msg.includes('撃沈')) {
     entry.classList.add('log-red');
   } else if (msg.includes('建設') || msg.includes('形成') || msg.includes('討伐') || msg.includes('初期化') || msg.includes('強化') || msg.includes('補給') || msg.includes('移動しました') || msg.includes('派遣') || msg.includes('帰還') || msg.includes('要請') || msg.includes('修理')) { // 修理を追加
     entry.classList.add('log-cyan');
@@ -833,7 +833,6 @@ function handleWarshipAttacks() {
             }
 
             if (!validTargetFound) {
-                logAction(`${warship.name} は攻撃可能な目標を見つけられませんでした。`);
                 continue; // Skip this attack
             }
 
@@ -876,14 +875,21 @@ function handleWarshipAttacks() {
                     if (otherWarshipAtTarget) {
                         expGained += 1;
                         targetType = "敵軍艦";
+                        if (otherWarshipAtTarget.currentDurability <= 10) {
+                        logAction(`${otherWarshipAtTarget.name}は${warship.name}の砲撃が命中し、黒煙を噴き出しました。 残り耐久: ${otherWarshipAtTarget.currentDurability}`);
+                        }else if (otherWarshipAtTarget.currentDurability <= 25) {
+                        logAction(`${otherWarshipAtTarget.name}は${warship.name}の砲撃を受けましたが、装甲により損傷は僅かでした。 残り耐久: ${otherWarshipAtTarget.currentDurability}`);
+                        }else if (otherWarshipAtTarget.currentDurability <= 80) {
+                        logAction(`${otherWarshipAtTarget.name}は${warship.name}の砲撃を受けましたが、ほぼ無傷でした。 残り耐久: ${otherWarshipAtTarget.currentDurability}`);
+                        }else{
+                        logAction(`${otherWarshipAtTarget.name}は${warship.name}の砲撃を受けましたが、完全に動じないようです。 残り耐久: ${otherWarshipAtTarget.currentDurability}`);
+                        }
                         otherWarshipAtTarget.currentDurability -= 1; // Reduce durability
-                        logAction(`${warship.name} は敵軍艦「${otherWarshipAtTarget.name}」を攻撃し、1 EXPを獲得しました！ 残り耐久: ${otherWarshipAtTarget.currentDurability}`);
                         if (otherWarshipAtTarget.currentDurability <= 0) {
-                            targetWarship.currentDurability = 0; // 0以下にならないように
-                            targetWarship.fuel = 0; // 残り燃料を0に
-                            targetWarship.currentFuel = 0; // 現在燃料も0に
-                            targetWarship.ammo = 0; // 残り弾薬を0に
-                            targetWarship.currentAmmo = 0; // 現在弾薬も0に
+                            otherWarshipAtTarget.fuel = 0; // 残り燃料を0に
+                            otherWarshipAtTarget.currentFuel = 0; // 現在燃料も0に
+                            otherWarshipAtTarget.ammo = 0; // 残り弾薬を0に
+                            otherWarshipAtTarget.currentAmmo = 0; // 現在弾薬も0に
                             logAction(`敵軍艦「${otherWarshipAtTarget.name}」を撃沈しました！`);
                             // For simplicity, a destroyed warship remains as wreckage on the map. renderMap will show 'x'.
                         }
@@ -911,14 +917,12 @@ function handleWarshipAttacks() {
     } else if(targetTile.facility) {
                         // Hit another facility (gun, factory, farm, port, defenseFacility)
                         targetType = targetTile.facility;
-                        logAction(`${warship.name} は ${targetType} を破壊しました。`);
                         targetTile.facility = null;
                         targetTile.terrain = 'waste'; // Turn into waste
                         targetTile.enhanced = false; // Remove enhancement
                     }else {
                         // Hit a terrain without facility (plain, forest)
                         targetType = targetTile.terrain;
-                        logAction(`${warship.name} は ${targetType} を荒地にしました。`);
                         targetTile.terrain = 'waste';
                     }
                 }
@@ -927,7 +931,6 @@ if (warship.exp === "NaN") {
 }
                 warship.exp += expGained;
             } else {
-                logAction(`${warship.name} の攻撃は外れました。`);
                 warship.currentAmmo--; // Still consume ammo on miss
                 attacksPerformed++;
             }
@@ -1525,12 +1528,11 @@ handleWarshipAttacks();
                                   }
                                   targetWarship.currentDurability -= 1; // 耐久値1減少
                                   if (targetWarship.currentDurability <= 0) {
-                                      warships = warships.filter(ship => ship !== targetWarship);
-                            targetWarship.currentDurability = 0; // 0以下にならないように
                             targetWarship.fuel = 0; // 残り燃料を0に
                             targetWarship.currentFuel = 0; // 現在燃料も0に
                             targetWarship.ammo = 0; // 残り弾薬を0に
                             targetWarship.currentAmmo = 0; // 現在弾薬も0に
+                                      warships = warships.filter(ship => ship !== targetWarship);
                                       logAction(`他島からの砲撃により軍艦「${targetWarship.name}」が撃沈されました！`);
                                   } else {
                                       logAction(`他島からの砲撃が軍艦「${targetWarship.name}」に着弾しました！ (残り耐久: ${targetWarship.currentDurability})`);
@@ -1912,11 +1914,11 @@ const newWarship = {
                         targetWarship.currentDurability -= 1; // 耐久値1減少
                         if (targetWarship.currentDurability <= 0) {
                             warships = warships.filter(ship => ship !== targetWarship);
-                            targetWarship.currentDurability = 0; // 0以下にならないように
                             targetWarship.fuel = 0; // 残り燃料を0に
                             targetWarship.currentFuel = 0; // 現在燃料も0に
                             targetWarship.ammo = 0; // 残り弾薬を0に
                             targetWarship.currentAmmo = 0; // 現在弾薬も0に
+                            warships = warships.filter(ship => ship !== targetWarship);
                             logAction(`砲撃により軍艦「${targetWarship.name}」が撃沈されました！`);
                         } else {
                             logAction(`砲撃が軍艦「${targetWarship.name}」に着弾しました！ (残り耐久: ${targetWarship.currentDurability})`);
@@ -2188,8 +2190,7 @@ if (turn > 0 && turn % 50 === 0) {
         const tile = map[y][x];
         if (tile.facility === 'farm') {
           // 防衛施設による保護をチェック
-          if (getProtectingDefenseFacility(x, y)) { // 変更点：PP弾以外は守るため、ここではPP弾でなくても守る
-              logAction(`(${x},${y}) の農場は防衛施設により守られました。`);
+          if (getProtectingDefenseFacility(x, y)) {
               continue;
           }
 
@@ -2224,17 +2225,6 @@ if (turn > 0 && turn % 50 === 0) {
 
     const protectingFacility = getProtectingDefenseFacility(x, y); // 変更点
 
-    // 隕石はPP弾に準じる扱いとする（防衛施設を破壊して貫通）
-    if (protectingFacility) {
-        protectingFacility.facility = null; // 防衛施設を破壊
-        protectingFacility.terrain = 'waste'; // 防衛施設の場所を荒地にする
-        protectingFacility.enhanced = false; // 強化状態もリセット
-        logAction(`(${x},${y}) に隕石が落下しましたが、防衛施設が防御に成功しました。`);
-        logAction(`防衛施設は職務を全うしました。`);
-renderMap();
-updateStatus();
-    }
-
     const tile = map[y][x];
     const label = tile.facility ? (tile.facility === 'farm' ? '農場' : tile.facility === 'factory' ? '工場' : '住宅') : tile.terrain;
 
@@ -2253,7 +2243,13 @@ updateStatus();
                 logAction(`隕石が軍艦「${targetWarship.name}」に命中、甚大な被害が出ました。 (残り耐久: ${targetWarship.currentDurability})`);
             }
         }
-    } else {
+    } else if (protectingFacility) {
+        protectingFacility.facility = null; // 防衛施設を破壊
+        protectingFacility.terrain = 'waste'; // 防衛施設の場所を荒地にする
+        protectingFacility.enhanced = false; // 強化状態もリセット
+        logAction(`(${x},${y}) に隕石が落下しましたが、防衛施設が防御に成功しました。`);
+        logAction(`防衛施設は職務を全うしました。`);
+    }else {
         if (tile.facility === 'house') {
             population -= tile.pop;
             if (population < 0) population = 0;
